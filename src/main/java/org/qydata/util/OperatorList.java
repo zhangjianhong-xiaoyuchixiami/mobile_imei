@@ -62,4 +62,22 @@ public class OperatorList {
 
     }
 
+    /**
+     * 判断运营商
+     * @param mobile
+     * @return
+     */
+    public static int isOperator(String mobile){
+
+        String param = mobile.substring(0,3);
+        if ( OperatorList.setChinaMobile.contains(param)){
+            return 1;
+        }else if (OperatorList.setChinaUnicom.contains(param)){
+            return 2;
+        }else if (OperatorList.setChinaTelecom.contains(param)){
+            return 3;
+        }
+        return 0;
+    }
+
 }

@@ -1,4 +1,4 @@
-package org.qydata.main;
+package org.qydata.main.datatest;
 
 import com.google.gson.Gson;
 import net.sf.json.JSONObject;
@@ -11,8 +11,11 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.qydata.constants.GlobalStaticConstants;
 import org.qydata.po.Req;
+import org.qydata.util.OperatorList;
 import org.qydata.util.POIUtil;
+import org.qydata.util.WriteTxt;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,68 +23,65 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by jonhn on 2017/8/15.
+ * Created by jonhn on 2017/9/20.
  */
-public class MobileDurationTest {
+public class Mobile2f {
 
-    private static String authId = "qydata03";
-    private static String authPass = "a54cc70444ea4618ad8d586194ba1572";
+    private static String readFileName = "E:\\数据测试\\20170920\\123456.xlsx";
+    private static String readFileName_1 = "E:\\数据测试\\20170920\\123456_111.xlsx";
+    private static String resultFileName = "E:\\数据测试\\20170920\\测试泰岳移动2要素20170920_result.txt";
 
-    private static String readFileName = "E:\\数据测试\\移动在网时长测试样本.xlsx";
-    private static String resultFileName = "E:\\数据测试\\移动在网时长测试样本.xlsx_result_0816.txt";
 
-    public static void main(String[] args){
+    public static void main(String[] args) throws InterruptedException {
 
         List<Req> reqList = null;
         try {
-            reqList = MobileDurationTest.readExcel(new File(readFileName));
+            reqList = Mobile2f.readExcel(new File(readFileName));
         } catch (IOException e) {
             e.printStackTrace();
         }
         for (int i = 0; i < reqList.size() ; i++) {
             Req req = reqList.get(i);
-            int operator = Mobile3fTest.isOperator(req.mobile);
+            int operator = OperatorList.isOperator(req.mobile);
+            Thread.sleep(500);
             if (operator == 1){
                 String resultMessage = null;
                 try {
-                    JSONObject jsonObject = MobileDurationTest.mobileDuration(req.mobile,83);
-                    resultMessage = MobileDurationTest.parseReturn(jsonObject);
+                    JSONObject jsonObject = Mobile2f.mobile2f(req.mobile,req.realName,102);
+                    resultMessage = Mobile2f.parseReturn(jsonObject);
                 } catch (IOException e) {
                     e.printStackTrace();
                     resultMessage = "异常";
                 }
-                String fileContent = "mobile:"+req.mobile+",运营商:移动"+",结果:"+resultMessage;
+                String fileContent = "mobile:"+req.mobile+",realName:"+req.realName+",运营商:移动"+",结果:"+resultMessage;
                 try {
-                    Mobile3fTest.writeTxt(resultFileName,fileContent);
+                    WriteTxt.writeTxt(resultFileName,fileContent);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
             if (operator == 2){
-                String resultMessage = "";
-                // JSONObject jsonObject =  Mobile3fTest.mobile3f(req.mobile,req.realName,req.idNo,70);
-                String fileContent = "mobile:"+req.mobile+",运营商:联通"+",结果:"+resultMessage;
+
+                String fileContent = "mobile:"+req.mobile+",realName:"+req.realName+",运营商:联通";
                 try {
-                    Mobile3fTest.writeTxt(resultFileName,fileContent);
+                    WriteTxt.writeTxt(resultFileName,fileContent);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
             if (operator == 3){
-                String resultMessage = "";
-                //JSONObject jsonObject =  Mobile3fTest.mobile3f(req.mobile,req.realName,req.idNo,70);
-                String fileContent = "mobile:"+req.mobile+",运营商:电信"+",结果:"+resultMessage;
+                String fileContent = "mobile:"+req.mobile+",realName:"+req.realName+",运营商:电信";
                 try {
-                    Mobile3fTest.writeTxt(resultFileName,fileContent);
+                    WriteTxt.writeTxt(resultFileName,fileContent);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
             if (operator == 0){
                 String resultMessage = "未知";
-                String fileContent = "mobile:"+req.mobile+",运营商:未知"+",结果:"+resultMessage;
+                String fileContent = "mobile:"+req.mobile+",realName:"+req.realName+",运营商:未知"+",结果:"+resultMessage;
                 try {
-                    Mobile3fTest.writeTxt(resultFileName,fileContent);
+                    WriteTxt.writeTxt(resultFileName,fileContent);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -90,28 +90,19 @@ public class MobileDurationTest {
 
     }
 
-    /**
-     * 请求在网时长核验接口
-     * @param mobile
-     * @param aid
-     * @return
-     * @throws IOException
-     */
-    public static JSONObject mobileDuration(String mobile,Integer aid) throws IOException {
+    public static JSONObject mobile2f(String mobile, String realName,Integer aid) throws IOException {
         CloseableHttpClient httpClient = HttpClients.createDefault();
-        HttpPost request = new HttpPost("https://api.qydata.org:9000/mobile/query/duration");
+        HttpPost request = new HttpPost(GlobalStaticConstants.REQUEST_PREFIX_API + "/mobile/verify/2f-name");
         request.setHeader(HttpHeaders.CONTENT_TYPE, "application/json;charset=UTF-8");
         Req req = new Req();
-        req.authId = authId;
+        req.authId = GlobalStaticConstants.AUTHID_03;
         req.reqId = Long.toString(System.currentTimeMillis()).substring(1);
         req.ts = System.currentTimeMillis();
-        req.sign = DigestUtils.md5Hex(req.authId + authPass + req.reqId + Long.toString(req.ts)).toUpperCase();
-
+        req.sign = DigestUtils.md5Hex(req.authId + GlobalStaticConstants.PASSWORD_03 + req.reqId + Long.toString(req.ts)).toUpperCase();
         req.omitLocal = true;
         req.aid = aid;
-
         req.mobile = mobile;
-
+        req.realName = realName;
         request.setEntity(new StringEntity(new Gson().toJson(req), Charsets.UTF_8));
         CloseableHttpResponse execute = httpClient.execute(request);
         String result = EntityUtils.toString(execute.getEntity());
@@ -120,12 +111,6 @@ public class MobileDurationTest {
         return resultJo;
     }
 
-    /**
-     * 封装请求数据
-     * @param file
-     * @return
-     * @throws IOException
-     */
     public static List<Req> readExcel(File file) throws IOException {
         List<String[]> resultList =  POIUtil.readExcel(file);
         List<Req> reqList = new ArrayList<Req>();
@@ -133,29 +118,35 @@ public class MobileDurationTest {
             for (String [] strs : resultList) {
                 String [] str = strs;
                 Req req = new Req();
-                req.mobile = str[1];
+                req.mobile = str[0];
+                req.realName = str[1];
                 reqList.add(req);
             }
         }
         return reqList;
     }
 
-    /**
-     * 解析返回结果
-     * @param jsonObject
-     * @return
-     */
     public static String parseReturn(JSONObject jsonObject){
+        String resultMessage = null;
         if (jsonObject == null){
             return "";
         }
         JSONObject jo = jsonObject.getJSONObject("result");
-        if (jo == null){
-            return "";
+        if (jo == null || jsonObject.get("result") instanceof net.sf.json.JSONNull){
+            return "无记录";
         }
-        String result = jo.getString("rangeStart");
-        String result2 = jo.getString("rangeEnd");
-        return result + "&" + result2;
+        String result = jo.getString("resultCode");
+        if ("-1".equals(result)){
+            resultMessage = "无记录";
+            return  resultMessage;
+        } else if ("1".equals(result)){
+            resultMessage = "匹配";
+            return  resultMessage;
+        } else if ("4".equals(result)){
+            resultMessage = "不匹配";
+            return  resultMessage;
+        }
+        return "";
     }
 
 }
